@@ -60,7 +60,7 @@ export async function POST(req: Request) {
       quarter_no: str(body.quarter_no, "Quarter", 40),
       mobile: mobile(body.mobile, "Mobile number"),
       issue_type_id: str(body.issue_type_id, "Issue type", 64),
-      description: str(body.description, "Description", 2000),
+      description: str(body.description, "Description", 2000, 10),
       photo_url: photoUrl,
       photo_public_id: photoUrl
         ? str(body.photo_public_id, "Photo reference", 200)

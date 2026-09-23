@@ -5,6 +5,7 @@ import {
   Inbox,
   MessageSquarePlus,
   Timer,
+  Trash2,
   TriangleAlert,
 } from "lucide-react";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
@@ -57,7 +58,7 @@ export default async function Overview({
         action={<RangeToggle value={range} />}
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
         <KpiTile
           label="Raised today"
           value={summary.raisedToday}
@@ -85,6 +86,13 @@ export default async function Overview({
           sub="देरी से"
           icon={AlarmClock}
           tone={summary.overdue > 0 ? "danger" : "ok"}
+        />
+        <KpiTile
+          label="Area work"
+          value={summary.areaWorkInRange}
+          sub={`${summary.areaWorkToday} today · क्षेत्र कार्य`}
+          icon={Trash2}
+          tone="info"
         />
         <KpiTile
           label="Avg time to fix"

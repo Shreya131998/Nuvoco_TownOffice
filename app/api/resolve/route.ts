@@ -68,7 +68,7 @@ export async function POST(req: Request) {
       technician_name: personName(body.technician_name, "Your name"),
       technician_mobile: optStr(body.technician_mobile, "Mobile number", 15),
       outcome,
-      action_taken: str(body.action_taken, "Work done", 2000),
+      action_taken: str(body.action_taken, "Work done", 2000, 5),
       photo_url: photoUrl,
       photo_public_id: photoUrl
         ? str(body.photo_public_id, "Photo reference", 200)

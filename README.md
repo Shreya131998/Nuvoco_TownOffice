@@ -7,7 +7,7 @@ token, and the dashboard moves.
 | Who | Page | Login |
 |---|---|---|
 | Resident | `/complaint` — file it, `/complaint/<token>` — track it | none |
-| Maintenance staff | `/resolve` — close it, by token or by address | none |
+| Maintenance staff | `/resolve` — close a complaint, or log area work | none |
 | Town office | `/admin` — dashboard, table, Excel export | one shared password |
 
 Every label carries Hindi alongside English. Running cost: **₹0/month**.
@@ -129,19 +129,20 @@ Opens on port **3001**, so it can run alongside the OHC project.
 
 ## How the sheet is laid out
 
-**Two visible tabs.** Both are running logs — one row appended at the bottom,
+**Three visible tabs.** All are running logs — one row appended at the bottom,
 never edited.
 
 | Tab | One row = | Columns |
 |---|---|---|
 | **Complaints** | one complaint | token, who, where, what, photo |
 | **Resolutions** | one *visit* | token, technician, outcome, work done, photo |
+| **Area Work** | one *round* | date, type, area, worker, what was done, photo |
 
 A complaint with three call-outs has one row in `Complaints` and three in
 `Resolutions`. The latest visit decides the status; all three stay as the
 audit trail.
 
-**Two hidden tabs**, both editable by hand. Right-click any tab → **Unhide**.
+**Three hidden tabs**, all editable by hand. Right-click any tab → **Unhide**.
 Changes appear within five minutes, with no deploy.
 
 `_issue_types` — the dropdown of problems:
@@ -167,7 +168,11 @@ Deleting it orphans every complaint that used it.
 | `active` | blank or `TRUE` to show it; `FALSE` to retire it |
 | `id` | leave alone |
 
-They ship with the ranges blank, so every block takes a typed number today.
+`_work_types` — the kinds of common-area round, same four columns as
+`_issue_types` minus the SLA. Ships with Road Cleaning and Garbage Collection;
+add a row for drain cleaning, grass cutting or a water tanker round.
+
+The block ranges ship blank, so every block takes a typed number today.
 Fill `unit_from` and `unit_to` for a block — say `1` and `48` for B — and its
 picker tightens to a list on the next load. A place with no units, like the
 temple, needs nothing filled in at all.
@@ -218,6 +223,18 @@ chart and every address search depend on.
 The block list is data, not code — add a block, rename one, or retire one by
 editing `_blocks`. The unit number is free text until someone fills in that
 block's range, so nothing had to be surveyed before going live.
+
+**Area work is a separate register, not a kind of resolution.** Road sweeping
+and garbage rounds answer to no complaint: there is no token, no quarter and
+no resident waiting. Filing them as resolutions would have meant rows pointing
+at tokens that do not exist, and every join, count and status downstream
+special-casing them. They get their own tab, their own form behind the
+*Area work* switch on `/resolve`, and their own sheet in the export. They
+appear in the dashboard feed and their own tile, and touch nothing else.
+
+The date is asked for rather than assumed, because a round gets written up at
+the end of a shift or the next morning. Backdating up to a month is allowed; a
+future date is not.
 
 **A lost token is not a dead end.** `/resolve` finds a complaint by address,
 and `/status` does the same for a resident. Neither asks for a name or a phone

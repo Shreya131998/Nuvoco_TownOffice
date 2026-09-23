@@ -1,4 +1,4 @@
-import { MessageSquarePlus, Wrench } from "lucide-react";
+import { MessageSquarePlus, Trash2, Wrench } from "lucide-react";
 import { EmptyState } from "@/components/ui";
 import { fmtDateTime } from "@/lib/dates";
 import type { Activity, ActivityKind } from "@/lib/types";
@@ -6,16 +6,19 @@ import type { Activity, ActivityKind } from "@/lib/types";
 const ICON: Record<ActivityKind, typeof Wrench> = {
   raised: MessageSquarePlus,
   resolved: Wrench,
+  area: Trash2,
 };
 
 const TONE: Record<ActivityKind, string> = {
   raised: "bg-warn-soft text-warn",
   resolved: "bg-ok-soft text-ok",
+  area: "bg-info-soft text-info",
 };
 
 const VERB: Record<ActivityKind, string> = {
   raised: "raised a complaint",
   resolved: "recorded a visit",
+  area: "logged area work",
 };
 
 /** Complaints and visits interleaved, newest first. */
@@ -35,7 +38,7 @@ export function ActivityFeed({
       {rows.slice(0, limit).map((r) => {
         const Icon = ICON[r.kind];
         return (
-          <li key={`${r.kind}-${r.token}-${r.at}`} className="flex gap-3 p-4">
+          <li key={`${r.kind}-${r.token || r.person}-${r.at}`} className="flex gap-3 p-4">
             <span
               className={`grid size-8 shrink-0 place-items-center rounded-lg ${TONE[r.kind]}`}
             >
@@ -47,8 +50,16 @@ export function ActivityFeed({
                 <span className="text-muted">{VERB[r.kind]}</span>
               </p>
               <p className="text-xs text-muted">
-                {r.quarter_no} · {r.issue_type_en} ·{" "}
-                <span className="font-mono">{r.token}</span>
+                {/* Area work carries neither a quarter nor a token, so both
+                    are skipped rather than rendered as empty separators. */}
+                {r.quarter_no && <>{r.quarter_no} · </>}
+                {r.issue_type_en}
+                {r.token && (
+                  <>
+                    {" · "}
+                    <span className="font-mono">{r.token}</span>
+                  </>
+                )}
               </p>
               {r.detail && (
                 <p className="mt-1 line-clamp-2 text-xs italic text-muted">

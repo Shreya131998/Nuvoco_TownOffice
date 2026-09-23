@@ -12,13 +12,20 @@ import { CheckCircle2, Search, TriangleAlert } from "lucide-react";
 import { FormShell, SubmitBar } from "@/components/forms/FormShell";
 import { PhotoField, type UploadedPhoto } from "@/components/forms/PhotoField";
 import { QuarterField } from "@/components/forms/QuarterField";
+import { AreaWorkForm } from "./AreaWorkForm";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button, Card, Field, inputClass } from "@/components/ui";
 import { thumb } from "@/lib/cloudinary-client";
 import { fmtDate, fmtDateTime } from "@/lib/dates";
 import { normaliseToken } from "@/lib/token";
 import type { PublicComplaint } from "@/lib/public-complaint";
-import { formatQuarter, OUTCOME_META, type Block, type Outcome } from "@/lib/types";
+import {
+  formatQuarter,
+  OUTCOME_META,
+  type Block,
+  type Outcome,
+  type WorkType,
+} from "@/lib/types";
 
 const OUTCOMES: Outcome[] = ["resolved", "partial", "not_possible"];
 
@@ -26,14 +33,22 @@ export default function ResolveForm({
   initialToken,
   initialComplaint,
   blocks,
+  workTypes,
   photos,
 }: {
   initialToken: string;
   initialComplaint: PublicComplaint | null;
   blocks: Block[];
+  workTypes: WorkType[];
   photos: boolean;
 }) {
   const router = useRouter();
+
+  // Two jobs share this page because one person does both on the same round.
+  // A complaint answers to a resident and a token; area work answers to
+  // neither, so they are separate records rather than one form with half its
+  // fields greyed out.
+  const [job, setJob] = useState<"complaint" | "area">("complaint");
 
   // Two ways in. Token is faster when the resident still has their slip;
   // the address is the fallback when they have lost it, which at a doorstep is
@@ -191,9 +206,60 @@ export default function ResolveForm({
     );
   }
 
+  const jobSwitch = (
+    <div
+      role="group"
+      aria-label="What are you recording?"
+      className="grid grid-cols-2 overflow-hidden rounded-card border border-border-strong"
+    >
+      <button
+        type="button"
+        aria-pressed={job === "complaint"}
+        onClick={() => setJob("complaint")}
+        className={`px-3 py-3 text-sm font-semibold transition ${
+          job === "complaint"
+            ? "bg-primary text-primary-fg"
+            : "bg-surface text-muted hover:bg-surface-2"
+        }`}
+      >
+        A resident&rsquo;s complaint
+        <span className="hi block text-xs font-normal">निवासी की शिकायत</span>
+      </button>
+      <button
+        type="button"
+        aria-pressed={job === "area"}
+        onClick={() => setJob("area")}
+        className={`px-3 py-3 text-sm font-semibold transition ${
+          job === "area"
+            ? "bg-primary text-primary-fg"
+            : "bg-surface text-muted hover:bg-surface-2"
+        }`}
+      >
+        Area work
+        <span className="hi block text-xs font-normal">सामान्य क्षेत्र कार्य</span>
+      </button>
+    </div>
+  );
+
+  if (job === "area") {
+    return (
+      <FormShell title="Record work done" titleHi="किया गया कार्य दर्ज करें">
+        <div className="grid gap-4">
+          {jobSwitch}
+          <AreaWorkForm
+            workTypes={workTypes}
+            photos={photos}
+            onSaved={() => setErr(null)}
+          />
+        </div>
+      </FormShell>
+    );
+  }
+
   return (
-    <FormShell title="Close a complaint" titleHi="शिकायत बंद करें">
+    <FormShell title="Record work done" titleHi="किया गया कार्य दर्ज करें">
       <div className="grid gap-4">
+        {jobSwitch}
         <Card title="1. Find the complaint" subtitle="शिकायत खोजें">
           <div className="grid gap-4 p-4">
             <div

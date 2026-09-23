@@ -42,7 +42,7 @@ async function call(path, init) {
   return res.json();
 }
 
-for (const tab of ['Complaints', 'Resolutions']) {
+for (const tab of ['Complaints', 'Resolutions', 'Area Work']) {
   const cur = await call(`/values/${encodeURIComponent(`'${tab}'`)}`);
   const rows = cur.values ?? [];
   const header = rows[0];

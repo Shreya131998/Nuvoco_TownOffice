@@ -1,7 +1,7 @@
 import ResolveForm from "./ResolveForm";
 import { isCloudinaryConfigured } from "@/lib/cloudinary";
 import { toPublicComplaint } from "@/lib/public-complaint";
-import { getBlocks, getByToken } from "@/lib/sheets/store";
+import { getBlocks, getByToken, getWorkTypes } from "@/lib/sheets/store";
 import { normaliseToken } from "@/lib/token";
 
 export const dynamic = "force-dynamic";
@@ -22,9 +22,10 @@ export default async function Page({
 }) {
   const raw = (await searchParams).token ?? "";
   const token = raw ? normaliseToken(raw) : null;
-  const [found, blocks] = await Promise.all([
+  const [found, blocks, workTypes] = await Promise.all([
     token ? getByToken(token) : null,
     getBlocks(),
+    getWorkTypes(),
   ]);
 
   return (
@@ -32,6 +33,7 @@ export default async function Page({
       initialToken={token ?? raw}
       initialComplaint={found ? toPublicComplaint(found) : null}
       blocks={blocks}
+      workTypes={workTypes}
       photos={isCloudinaryConfigured()}
     />
   );

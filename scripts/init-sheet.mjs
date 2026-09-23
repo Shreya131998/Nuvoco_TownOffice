@@ -134,6 +134,15 @@ const BLOCKS = [
   { en: 'Temple',           hi: 'मंदिर',                units: null },
 ];
 
+// Routine work on the common areas — nothing to do with a complaint, so it
+// has its own list. Two to start with; add a row to _work_types for drain
+// cleaning, grass cutting, a water tanker round or anything else, and it
+// appears in the dropdown within five minutes.
+const WORK_TYPES = [
+  { en: 'Road Cleaning',      hi: 'सड़क सफाई' },
+  { en: 'Garbage Collection', hi: 'कचरा संग्रहण' },
+];
+
 // Headers are duplicated from lib/sheets/schema.ts — this file is .mjs and
 // cannot import the TS module. Keep the two in sync; a mismatch makes the
 // register-header step below exit rather than corrupt a live tab.
@@ -148,6 +157,10 @@ const REFERENCE = {
       i + 1, b.en, b.hi, b.units?.[0] ?? '', b.units?.[1] ?? '', 'TRUE', randomUUID(),
     ]),
   },
+  _work_types: {
+    header: ['sort_order', 'label_en', 'label_hi', 'active', 'id'],
+    rows: WORK_TYPES.map((w, i) => [i + 1, w.en, w.hi, 'TRUE', randomUUID()]),
+  },
 };
 
 const TRANSACTION = {
@@ -159,6 +172,11 @@ const TRANSACTION = {
   Resolutions: [
     'token', 'resolved_at', 'resolve_date', 'technician_name',
     'technician_mobile', 'outcome', 'action_taken', 'photo_url',
+    'photo_public_id', 'id',
+  ],
+  'Area Work': [
+    'work_date', 'logged_at', 'work_type_id', 'work_type_en', 'work_type_hi',
+    'area', 'worker_name', 'worker_mobile', 'notes', 'photo_url',
     'photo_public_id', 'id',
   ],
 };

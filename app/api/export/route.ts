@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { isAdmin } from "@/lib/auth";
-import { fmtDateTime } from "@/lib/dates";
-import { getComplaints } from "@/lib/sheets/store";
+import { fmtDate, fmtDateTime } from "@/lib/dates";
+import { getAreaWork, getComplaints } from "@/lib/sheets/store";
 import { OUTCOME_META, STATUS_META } from "@/lib/types";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
- * Two sheets: one row per complaint, and one row per visit.
+ * Three sheets: one row per complaint, one per visit, and one per round of
+ * common-area work.
  *
  * A layout keyed to the Complaints tab cannot carry repeat visits without
  * either dropping the earlier ones or growing a column per visit. Splitting
@@ -32,8 +33,15 @@ export async function GET(req: Request) {
     );
   }
 
-  const rows = (await getComplaints()).filter(
+  const [allComplaints, allRounds] = await Promise.all([
+    getComplaints(),
+    getAreaWork(),
+  ]);
+  const rows = allComplaints.filter(
     (c) => c.complaint_date >= from && c.complaint_date <= to
+  );
+  const rounds = allRounds.filter(
+    (w) => w.work_date >= from && w.work_date <= to
   );
 
   const wb = new ExcelJS.Workbook();
@@ -121,6 +129,36 @@ export async function GET(req: Request) {
         v.photo_url ?? "",
       ]);
     }
+  }
+
+  // Third sheet: the common-area rounds. Kept apart from the complaint
+  // sheets because it joins to neither — no token, no quarter, no resident.
+  const area = wb.addWorksheet("Area Work");
+  header(
+    area,
+    [
+      "दिनांक / Date",
+      "कार्य / Work",
+      "क्षेत्र / Area",
+      "कर्मचारी / Worker",
+      "मोबाइल / Mobile",
+      "क्या हुआ / What was done",
+      "फोटो / Photo",
+    ],
+    [16, 22, 28, 22, 14, 46, 40]
+  );
+  area.getRow(1).height = 30;
+
+  for (const w of rounds) {
+    area.addRow([
+      fmtDate(w.work_date),
+      `${w.work_type_hi}\n${w.work_type_en}`,
+      w.area ?? "",
+      w.worker_name,
+      w.worker_mobile ?? "",
+      w.notes,
+      w.photo_url ?? "",
+    ]);
   }
 
   const buf = await wb.xlsx.writeBuffer();

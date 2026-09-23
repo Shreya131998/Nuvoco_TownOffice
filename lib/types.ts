@@ -36,6 +36,35 @@ export function formatQuarter(block: string, unit: string): string {
   return u ? `${b}-${u}` : b;
 }
 
+/** One row of the hidden _work_types master — a kind of common-area round. */
+export type WorkType = {
+  id: string;
+  sort_order: number;
+  label_en: string;
+  label_hi: string;
+};
+
+/**
+ * A round of work on the common areas: sweeping, a garbage collection run.
+ *
+ * Carries no token and no quarter. It is not a complaint being answered, so
+ * it has no status either — the work either happened on a date or it did not.
+ */
+export type AreaWork = {
+  id: string;
+  work_date: string;
+  logged_at: string;
+  work_type_id: string;
+  work_type_en: string;
+  work_type_hi: string;
+  /** Free text: "main road", "behind D block". Deliberately not a quarter. */
+  area: string | null;
+  worker_name: string;
+  worker_mobile: string | null;
+  notes: string;
+  photo_url: string | null;
+};
+
 /** What a technician recorded on a visit. */
 export type Outcome = "resolved" | "partial" | "not_possible";
 
@@ -108,9 +137,15 @@ export type Complaint = {
   overdue: boolean;
 };
 
-export type ActivityKind = "raised" | "resolved";
+export type ActivityKind = "raised" | "resolved" | "area";
 
-/** One entry in the dashboard feed — a complaint filed, or a visit recorded. */
+/**
+ * One entry in the dashboard feed: a complaint filed, a visit recorded, or a
+ * round of common-area work.
+ *
+ * `token` and `quarter_no` are empty strings for area work, which has
+ * neither. The feed renders them conditionally rather than pretending.
+ */
 export type Activity = {
   kind: ActivityKind;
   token: string;

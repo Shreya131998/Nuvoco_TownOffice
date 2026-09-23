@@ -16,16 +16,26 @@
 export const TAB = {
   complaints: "Complaints",
   resolutions: "Resolutions",
+  areaWork: "Area Work",
   // hidden masters
   issueType: "_issue_types",
   block: "_blocks",
+  workType: "_work_types",
 } as const;
 
-export const VISIBLE_TABS: string[] = [TAB.complaints, TAB.resolutions];
-export const HIDDEN_TABS: string[] = [TAB.issueType, TAB.block];
+export const VISIBLE_TABS: string[] = [
+  TAB.complaints,
+  TAB.resolutions,
+  TAB.areaWork,
+];
+export const HIDDEN_TABS: string[] = [TAB.issueType, TAB.block, TAB.workType];
 
 /** Registers emptied by `npm run sheet:clear`. Masters are never cleared. */
-export const REGISTER_TABS: string[] = [TAB.complaints, TAB.resolutions];
+export const REGISTER_TABS: string[] = [
+  TAB.complaints,
+  TAB.resolutions,
+  TAB.areaWork,
+];
 
 export const COMPLAINT_COLS = [
   "token",
@@ -75,6 +85,41 @@ export const BLOCK_COLS = [
   "id",
 ] as const;
 
+/**
+ * Routine work on the common areas — road sweeping, garbage rounds.
+ *
+ * A separate register from Resolutions, not a variant of it, because it
+ * answers to nothing: there is no complaint, no token and no quarter. Forcing
+ * it into the complaint tables would have meant a resolution row pointing at a
+ * token that does not exist, and every join and count downstream having to
+ * special-case it.
+ *
+ * `area` is optional and free of the quarter list: a sweeping round covers a
+ * stretch of road, not a house.
+ */
+export const AREA_WORK_COLS = [
+  "work_date",
+  "logged_at",
+  "work_type_id",
+  "work_type_en",
+  "work_type_hi",
+  "area",
+  "worker_name",
+  "worker_mobile",
+  "notes",
+  "photo_url",
+  "photo_public_id",
+  "id",
+] as const;
+
+export const WORK_TYPE_COLS = [
+  "sort_order",
+  "label_en",
+  "label_hi",
+  "active",
+  "id",
+] as const;
+
 export const ISSUE_TYPE_COLS = [
   "sort_order",
   "label_en",
@@ -89,6 +134,8 @@ export const HEADERS: Record<string, readonly string[]> = {
   [TAB.resolutions]: RESOLUTION_COLS,
   [TAB.issueType]: ISSUE_TYPE_COLS,
   [TAB.block]: BLOCK_COLS,
+  [TAB.workType]: WORK_TYPE_COLS,
+  [TAB.areaWork]: AREA_WORK_COLS,
 };
 
 /** Hours before an unresolved complaint is flagged, when the master is blank. */

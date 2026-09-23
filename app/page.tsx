@@ -21,10 +21,10 @@ const TILES = [
   {
     href: "/resolve",
     icon: Wrench,
-    title: "Close a complaint",
-    titleHi: "शिकायत बंद करें",
-    desc: "For maintenance staff — enter the resident's token after the work.",
-    descHi: "रखरखाव कर्मचारी — काम के बाद निवासी का टोकन डालें।",
+    title: "Record work done",
+    titleHi: "किया गया कार्य दर्ज करें",
+    desc: "For staff — close a resident's complaint, or log road cleaning and garbage rounds.",
+    descHi: "कर्मचारी — निवासी की शिकायत बंद करें, या सड़क सफाई व कचरा संग्रहण दर्ज करें।",
   },
 ];
 

@@ -12,10 +12,14 @@ export class NotFound extends Error {}
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-export function str(v: unknown, field: string, max = 200): string {
+export function str(v: unknown, field: string, max = 200, min = 0): string {
   if (typeof v !== "string" || !v.trim()) throw new BadRequest(`${field} is required`);
   const s = v.trim();
   if (s.length > max) throw new BadRequest(`${field} is too long`);
+  // The forms enforce a minimum too, but a form check is a courtesy, not a
+  // gate — anything can POST here. A one-word "ok" in place of a description
+  // is a record nobody can act on a month later.
+  if (s.length < min) throw new BadRequest(`${field} is too short`);
   return s;
 }
 

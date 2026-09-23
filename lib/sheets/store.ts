@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { appendRows, readTabs, toObjects, isSheetsConfigured } from "./client";
 import {
   TAB,
+  AREA_WORK_COLS,
   COMPLAINT_COLS,
   RESOLUTION_COLS,
   DEFAULT_SLA_HOURS,
@@ -12,12 +13,14 @@ import { makeToken } from "@/lib/token";
 import { istToday, istDate } from "@/lib/dates";
 import type {
   Activity,
+  AreaWork,
   Block,
   Complaint,
   ComplaintStatus,
   IssueType,
   Outcome,
   Resolution,
+  WorkType,
 } from "@/lib/types";
 
 /**
@@ -44,14 +47,14 @@ let txCache: { at: number; data: Grid } | null = null;
 
 async function reference(force = false): Promise<Grid> {
   if (!force && refCache && Date.now() - refCache.at < REF_TTL) return refCache.data;
-  const data = await readTabs([TAB.issueType, TAB.block]);
+  const data = await readTabs([TAB.issueType, TAB.block, TAB.workType]);
   refCache = { at: Date.now(), data };
   return data;
 }
 
 async function transactions(force = false): Promise<Grid> {
   if (!force && txCache && Date.now() - txCache.at < TX_TTL) return txCache.data;
-  const data = await readTabs([TAB.complaints, TAB.resolutions]);
+  const data = await readTabs([TAB.complaints, TAB.resolutions, TAB.areaWork]);
   txCache = { at: Date.now(), data };
   return data;
 }
@@ -98,6 +101,19 @@ export async function getBlocks(): Promise<Block[]> {
       unit_from:
         r.unit_from && r.unit_to ? Number(r.unit_from) || null : null,
       unit_to: r.unit_from && r.unit_to ? Number(r.unit_to) || null : null,
+    }))
+    .sort((a, b) => a.sort_order - b.sort_order);
+}
+
+export async function getWorkTypes(): Promise<WorkType[]> {
+  const g = await reference();
+  return toObjects(g[TAB.workType] ?? [])
+    .filter((r) => truthy(r.active))
+    .map((r) => ({
+      id: r.id,
+      sort_order: Number(r.sort_order) || 0,
+      label_en: r.label_en,
+      label_hi: r.label_hi || r.label_en,
     }))
     .sort((a, b) => a.sort_order - b.sort_order);
 }
@@ -225,6 +241,48 @@ export async function submitResolution(
   return { token: input.token };
 }
 
+export type AreaWorkInput = {
+  work_date: string;
+  work_type_id: string;
+  area: string | null;
+  worker_name: string;
+  worker_mobile: string | null;
+  notes: string;
+  photo_url: string | null;
+  photo_public_id: string | null;
+};
+
+/** Appends one round of common-area work. No token, nothing to join to. */
+export async function submitAreaWork(
+  input: AreaWorkInput
+): Promise<{ id: string }> {
+  const types = await getWorkTypes();
+  const type = types.find((t) => t.id === input.work_type_id);
+  if (!type) {
+    throw new BadRequest("That work type no longer exists. Reload the form.");
+  }
+
+  const id = randomUUID();
+  const row: Record<(typeof AREA_WORK_COLS)[number], string> = {
+    work_date: input.work_date,
+    logged_at: new Date().toISOString(),
+    work_type_id: type.id,
+    work_type_en: type.label_en,
+    work_type_hi: type.label_hi,
+    area: input.area ?? "",
+    worker_name: input.worker_name,
+    worker_mobile: input.worker_mobile ?? "",
+    notes: input.notes,
+    photo_url: input.photo_url ?? "",
+    photo_public_id: input.photo_public_id ?? "",
+    id,
+  };
+
+  await appendRows(TAB.areaWork, [AREA_WORK_COLS.map((c) => row[c])]);
+  invalidateTransactions();
+  return { id };
+}
+
 // ── reading ──────────────────────────────────────────────────────────────
 
 type RawComplaint = Omit<
@@ -267,6 +325,26 @@ async function rawResolutions(): Promise<Resolution[]> {
       action_taken: r.action_taken,
       photo_url: r.photo_url || null,
     }));
+}
+
+export async function getAreaWork(): Promise<AreaWork[]> {
+  const grid = (await transactions())[TAB.areaWork] ?? [];
+  return toObjects(grid)
+    .filter((r) => r.id)
+    .map((r) => ({
+      id: r.id,
+      work_date: r.work_date,
+      logged_at: r.logged_at,
+      work_type_id: r.work_type_id,
+      work_type_en: r.work_type_en,
+      work_type_hi: r.work_type_hi,
+      area: r.area || null,
+      worker_name: r.worker_name,
+      worker_mobile: r.worker_mobile || null,
+      notes: r.notes,
+      photo_url: r.photo_url || null,
+    }))
+    .sort((a, b) => (a.work_date < b.work_date ? 1 : -1));
 }
 
 const STATUS_FOR: Record<Outcome, ComplaintStatus> = {
@@ -382,13 +460,16 @@ export type Summary = {
   raisedInRange: number;
   resolvedInRange: number;
   avgResolutionHours: number | null;
+  /** Common-area rounds logged in the window — unrelated to complaints. */
+  areaWorkInRange: number;
+  areaWorkToday: number;
 };
 
 export async function getSummary(range: {
   from: string;
   to: string;
 }): Promise<Summary> {
-  const all = await getComplaints();
+  const [all, rounds] = await Promise.all([getComplaints(), getAreaWork()]);
   const today = istToday();
 
   // Resolution counts key off the visit date, not the complaint date: a
@@ -413,6 +494,8 @@ export async function getSummary(range: {
     avgResolutionHours: done.length
       ? Math.round(done.reduce((a, b) => a + b, 0) / done.length)
       : null,
+    areaWorkInRange: rounds.filter((w) => inRange(w.work_date, range)).length,
+    areaWorkToday: rounds.filter((w) => w.work_date === today).length,
   };
 }
 
@@ -524,7 +607,7 @@ export async function getActivity(range: {
   from: string;
   to: string;
 }): Promise<Activity[]> {
-  const all = await getComplaints();
+  const [all, rounds] = await Promise.all([getComplaints(), getAreaWork()]);
   const out: Activity[] = [];
 
   for (const c of all) {
@@ -555,6 +638,23 @@ export async function getActivity(range: {
         detail: v.action_taken,
       });
     }
+  }
+
+  // Common-area rounds sit in the same feed. They carry no token and no
+  // quarter, so those stay empty and the feed omits them for these entries.
+  for (const w of rounds) {
+    if (!inRange(w.work_date, range)) continue;
+    out.push({
+      kind: "area",
+      token: "",
+      at: w.logged_at || `${w.work_date}T00:00:00.000Z`,
+      on_date: w.work_date,
+      person: w.worker_name,
+      issue_type_en: w.work_type_en,
+      issue_type_hi: w.work_type_hi,
+      quarter_no: w.area ?? "",
+      detail: w.notes,
+    });
   }
 
   return out.sort((a, b) => (a.at < b.at ? 1 : -1));
