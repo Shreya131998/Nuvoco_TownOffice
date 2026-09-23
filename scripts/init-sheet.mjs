@@ -141,25 +141,58 @@ const BLOCKS = [
 const WORK_TYPES = [
   { en: 'Road Cleaning',      hi: 'सड़क सफाई' },
   { en: 'Garbage Collection', hi: 'कचरा संग्रहण' },
+  { en: 'Horticulture',       hi: 'बागवानी' },
 ];
 
 // Headers are duplicated from lib/sheets/schema.ts — this file is .mjs and
 // cannot import the TS module. Keep the two in sync; a mismatch makes the
 // register-header step below exit rather than corrupt a live tab.
+const meta = await call('');
+const byTitle = new Map(meta.sheets.map((s) => [s.properties.title, s.properties]));
+
+/**
+ * Ids already issued for a master tab, keyed by label.
+ *
+ * This script rewrites the master tabs in full on every run, and a fresh
+ * randomUUID() per row would hand every existing record a dangling foreign
+ * key — a complaint filed last week would stop matching its issue type, and
+ * silently fall back to the default SLA. So an existing label keeps the id it
+ * already has, and only genuinely new rows get a new one.
+ */
+async function existingIds(tab, labelCol = 'label_en') {
+  if (!byTitle.has(tab)) return new Map();
+  const cur = await call(`/values/${encodeURIComponent(`'${tab}'`)}`);
+  const rows = cur.values ?? [];
+  if (rows.length < 2) return new Map();
+  const header = rows[0];
+  const li = header.indexOf(labelCol);
+  const ii = header.indexOf('id');
+  if (li === -1 || ii === -1) return new Map();
+  return new Map(
+    rows.slice(1).filter((r) => r[li] && r[ii]).map((r) => [r[li], r[ii]])
+  );
+}
+
+const keptIssueIds = await existingIds('_issue_types');
+const keptBlockIds = await existingIds('_blocks');
+const keptWorkIds = await existingIds('_work_types');
+const reuse = (map, label) => map.get(label) ?? randomUUID();
+
 const REFERENCE = {
   _issue_types: {
     header: ['sort_order', 'label_en', 'label_hi', 'sla_hours', 'active', 'id'],
-    rows: ISSUE_TYPES.map((t, i) => [i + 1, t.en, t.hi, t.sla, 'TRUE', randomUUID()]),
+    rows: ISSUE_TYPES.map((t, i) => [i + 1, t.en, t.hi, t.sla, 'TRUE', reuse(keptIssueIds, t.en)]),
   },
   _blocks: {
     header: ['sort_order', 'label_en', 'label_hi', 'unit_from', 'unit_to', 'active', 'id'],
     rows: BLOCKS.map((b, i) => [
-      i + 1, b.en, b.hi, b.units?.[0] ?? '', b.units?.[1] ?? '', 'TRUE', randomUUID(),
+      i + 1, b.en, b.hi, b.units?.[0] ?? '', b.units?.[1] ?? '', 'TRUE',
+      reuse(keptBlockIds, b.en),
     ]),
   },
   _work_types: {
     header: ['sort_order', 'label_en', 'label_hi', 'active', 'id'],
-    rows: WORK_TYPES.map((w, i) => [i + 1, w.en, w.hi, 'TRUE', randomUUID()]),
+    rows: WORK_TYPES.map((w, i) => [i + 1, w.en, w.hi, 'TRUE', reuse(keptWorkIds, w.en)]),
   },
 };
 
@@ -181,8 +214,6 @@ const TRANSACTION = {
   ],
 };
 
-const meta = await call('');
-const byTitle = new Map(meta.sheets.map((s) => [s.properties.title, s.properties]));
 
 // Registers first, so they sit leftmost in the tab bar.
 const wanted = [...Object.keys(TRANSACTION), ...Object.keys(REFERENCE)];

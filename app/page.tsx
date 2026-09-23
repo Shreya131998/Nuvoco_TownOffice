@@ -15,8 +15,8 @@ const TILES = [
     icon: Search,
     title: "Check status",
     titleHi: "स्थिति देखें",
-    desc: "Look up a complaint with its token or your mobile number.",
-    descHi: "टोकन या मोबाइल नंबर से शिकायत देखें।",
+    desc: "Look up a complaint with its token, or by your address if you lost it.",
+    descHi: "टोकन से देखें, या टोकन खो जाने पर अपने पते से।",
   },
   {
     href: "/resolve",

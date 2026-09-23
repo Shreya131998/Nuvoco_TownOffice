@@ -169,8 +169,12 @@ Deleting it orphans every complaint that used it.
 | `id` | leave alone |
 
 `_work_types` — the kinds of common-area round, same four columns as
-`_issue_types` minus the SLA. Ships with Road Cleaning and Garbage Collection;
-add a row for drain cleaning, grass cutting or a water tanker round.
+`_issue_types` minus the SLA. Ships with Road Cleaning, Garbage Collection and Horticulture; add a row for
+drain cleaning, a water tanker round or anything else.
+
+Horticulture appears in both masters on purpose: a resident complaining about
+the hedge outside their quarter is a complaint, and the weekly grounds round
+is area work. They are different records of different things.
 
 The block ranges ship blank, so every block takes a typed number today.
 Fill `unit_from` and `unit_to` for a block — say `1` and `48` for B — and its
@@ -192,6 +196,15 @@ index, which races when a resident and a technician submit at the same moment.
 Appending never races. A resolution is therefore a new row joined on the token,
 and a repeat visit is just another row — which is also how the work history
 gets its audit trail for free.
+
+**Master ids survive a re-run of `sheet:init`.** The script rewrites the
+hidden master tabs in full, and it used to mint a fresh id for every row each
+time — which left existing complaints pointing at ids that no longer existed.
+Nothing looked broken, because the type name is stored on the complaint row
+itself, but the SLA lookup missed and those complaints silently fell back to
+the 48-hour default. A label that already exists now keeps its id, and only
+genuinely new rows get a new one. `scripts/relink-issue-types.mjs` repairs
+anything orphaned before that fix.
 
 **Status is computed, never stored.** A complaint saved as "open" in March is
 wrong by April. `open` / `in progress` / `resolved` / `blocked` come from the
@@ -313,7 +326,8 @@ lib/
   dates.ts                 everything IST
 scripts/
   init-sheet.mjs           builds and fills the sheet
-  clear-submissions.mjs    empties the two registers, keeps headers
+  clear-submissions.mjs    empties the three registers, keeps headers
+  relink-issue-types.mjs   one-off repair for orphaned issue_type_id
   dev/fake-sheets.mjs      local stand-in for the Sheets API
 ```
 
