@@ -261,6 +261,13 @@ the resident sees the whole history, and both endpoints are rate limited — but
 it is a trade. Set `STAFF_ACCESS_CODE` to put `/resolve` behind one shared
 staff code if it stops being one.
 
+**A photo can be taken or chosen.** Two buttons, one file input. The
+`capture` attribute sends a phone straight to the rear camera, which suits
+someone standing in front of the problem — but it also skips the gallery, so
+a resident who photographed the leak an hour ago had no way to attach it. The
+attribute is set per button, immediately before the click, rather than fixed
+on the input.
+
 **Photos never touch this server.** The browser shrinks the image on a canvas
 (1600 px, q0.72 — typically 120–250 KB), asks `/api/upload-signature` for a
 signature, and uploads straight to Cloudinary. The API secret stays

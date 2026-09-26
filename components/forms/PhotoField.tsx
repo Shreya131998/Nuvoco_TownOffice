@@ -6,7 +6,7 @@
    requirement of this project, not an oversight. */
 
 import { useRef, useState } from "react";
-import { ImagePlus, X, Loader2, ImageOff } from "lucide-react";
+import { Camera, Images, X, Loader2, ImageOff } from "lucide-react";
 import { compressImage, prettyBytes } from "@/lib/compress";
 import { thumb } from "@/lib/cloudinary-client";
 
@@ -20,9 +20,15 @@ export type UploadedPhoto = { url: string; publicId: string };
  * the 4.5 MB serverless body cap and keeps every byte off metered function
  * bandwidth.
  *
- * `capture="environment"` makes a phone open the rear camera rather than the
- * gallery, which is how most of these get filed — standing in front of the
- * problem.
+ * Two buttons, one file input. `capture="environment"` sends a phone straight
+ * to the rear camera, which suits someone standing in front of the problem —
+ * but it also SKIPS the gallery entirely, so a resident who photographed the
+ * leak an hour ago had no way to attach it. The attribute is therefore set
+ * per button rather than fixed on the input.
+ *
+ * It is set imperatively, on the ref, immediately before .click(). A state
+ * change would re-render a tick too late, and the click has to stay inside
+ * the user gesture or the browser blocks the picker.
  *
  * When uploads are not configured the field still renders, disabled, saying
  * so. Hiding it entirely was worse: the feature looked missing rather than
@@ -90,6 +96,19 @@ export function PhotoField({
     }
   }
 
+  /**
+   * `fromCamera` decides whether the phone opens the camera or the gallery.
+   * On a desktop browser `capture` is ignored and both buttons open the same
+   * file dialog, which is the right outcome there anyway.
+   */
+  function openPicker(fromCamera: boolean) {
+    const el = input.current;
+    if (!el) return;
+    if (fromCamera) el.setAttribute("capture", "environment");
+    else el.removeAttribute("capture");
+    el.click();
+  }
+
   function clear() {
     onChange(null);
     setPreview(null);
@@ -109,7 +128,6 @@ export function PhotoField({
         ref={input}
         type="file"
         accept="image/*"
-        capture="environment"
         className="sr-only"
         onChange={(e) => {
           const f = e.target.files?.[0];
@@ -155,21 +173,33 @@ export function PhotoField({
             <X size={18} />
           </button>
         </div>
+      ) : busy ? (
+        <div className="flex w-full flex-col items-center gap-2 rounded-lg border border-dashed border-border-strong bg-surface px-4 py-6 text-sm text-muted">
+          <Loader2 size={24} className="animate-spin" />
+          <span className="font-medium">Uploading…</span>
+          <span className="hi text-xs">अपलोड हो रहा है…</span>
+        </div>
       ) : (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => input.current?.click()}
-          className="flex w-full flex-col items-center gap-2 rounded-lg border border-dashed border-border-strong bg-surface px-4 py-6 text-sm text-muted transition hover:border-primary hover:text-primary disabled:opacity-60"
-        >
-          {busy ? <Loader2 size={24} className="animate-spin" /> : <ImagePlus size={24} />}
-          <span className="font-medium">
-            {busy ? "Uploading…" : "Take or choose a photo"}
-          </span>
-          <span className="hi text-xs">
-            {busy ? "अपलोड हो रहा है…" : "फोटो लें या चुनें"}
-          </span>
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => openPicker(true)}
+            className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border-strong bg-surface px-3 py-5 text-sm text-muted transition hover:border-primary hover:text-primary"
+          >
+            <Camera size={24} />
+            <span className="font-medium">Take a photo</span>
+            <span className="hi text-xs">फोटो लें</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => openPicker(false)}
+            className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border-strong bg-surface px-3 py-5 text-sm text-muted transition hover:border-primary hover:text-primary"
+          >
+            <Images size={24} />
+            <span className="font-medium">From gallery</span>
+            <span className="hi text-xs">गैलरी से चुनें</span>
+          </button>
+        </div>
       )}
 
       {err && <p className="mt-2 text-xs text-danger">{err}</p>}
