@@ -9,6 +9,7 @@ import {
   DEFAULT_SLA_HOURS,
 } from "./schema";
 import { BadRequest, NotFound } from "@/lib/api";
+import { parseList, serialiseList } from "@/lib/cloudinary-client";
 import { makeToken } from "@/lib/token";
 import { istToday, istDate } from "@/lib/dates";
 import type {
@@ -150,8 +151,10 @@ export type ComplaintInput = {
   mobile: string;
   issue_type_id: string;
   description: string;
-  photo_url: string | null;
-  photo_public_id: string | null;
+  photo_urls: string[];
+  photo_ids: string[];
+  video_url: string | null;
+  video_id: string | null;
 };
 
 /**
@@ -193,9 +196,11 @@ export async function submitComplaint(
     issue_type_en: type.label_en,
     issue_type_hi: type.label_hi,
     description: input.description,
-    photo_url: input.photo_url ?? "",
-    photo_public_id: input.photo_public_id ?? "",
+    photo_url: serialiseList(input.photo_urls),
+    photo_public_id: serialiseList(input.photo_ids),
     id: randomUUID(),
+    video_url: input.video_url ?? "",
+    video_id: input.video_id ?? "",
   };
 
   await appendRows(TAB.complaints, [COMPLAINT_COLS.map((c) => row[c])]);
@@ -209,8 +214,10 @@ export type ResolutionInput = {
   technician_mobile: string | null;
   outcome: Outcome;
   action_taken: string;
-  photo_url: string | null;
-  photo_public_id: string | null;
+  photo_urls: string[];
+  photo_ids: string[];
+  video_url: string | null;
+  video_id: string | null;
 };
 
 /** Appends a visit. The complaint row itself is never touched. */
@@ -231,9 +238,11 @@ export async function submitResolution(
     technician_mobile: input.technician_mobile ?? "",
     outcome: input.outcome,
     action_taken: input.action_taken,
-    photo_url: input.photo_url ?? "",
-    photo_public_id: input.photo_public_id ?? "",
+    photo_url: serialiseList(input.photo_urls),
+    photo_public_id: serialiseList(input.photo_ids),
     id: randomUUID(),
+    video_url: input.video_url ?? "",
+    video_id: input.video_id ?? "",
   };
 
   await appendRows(TAB.resolutions, [RESOLUTION_COLS.map((c) => row[c])]);
@@ -248,8 +257,10 @@ export type AreaWorkInput = {
   worker_name: string;
   worker_mobile: string | null;
   notes: string;
-  photo_url: string | null;
-  photo_public_id: string | null;
+  photo_urls: string[];
+  photo_ids: string[];
+  video_url: string | null;
+  video_id: string | null;
 };
 
 /** Appends one round of common-area work. No token, nothing to join to. */
@@ -273,9 +284,11 @@ export async function submitAreaWork(
     worker_name: input.worker_name,
     worker_mobile: input.worker_mobile ?? "",
     notes: input.notes,
-    photo_url: input.photo_url ?? "",
-    photo_public_id: input.photo_public_id ?? "",
+    photo_url: serialiseList(input.photo_urls),
+    photo_public_id: serialiseList(input.photo_ids),
     id,
+    video_url: input.video_url ?? "",
+    video_id: input.video_id ?? "",
   };
 
   await appendRows(TAB.areaWork, [AREA_WORK_COLS.map((c) => row[c])]);
@@ -306,7 +319,8 @@ async function rawComplaints(): Promise<RawComplaint[]> {
       issue_type_en: r.issue_type_en,
       issue_type_hi: r.issue_type_hi,
       description: r.description,
-      photo_url: r.photo_url || null,
+      photo_urls: parseList(r.photo_url),
+      video_url: r.video_url || null,
     }));
 }
 
@@ -323,7 +337,8 @@ async function rawResolutions(): Promise<Resolution[]> {
       technician_mobile: r.technician_mobile || null,
       outcome: (r.outcome as Outcome) || "resolved",
       action_taken: r.action_taken,
-      photo_url: r.photo_url || null,
+      photo_urls: parseList(r.photo_url),
+      video_url: r.video_url || null,
     }));
 }
 
@@ -342,7 +357,8 @@ export async function getAreaWork(): Promise<AreaWork[]> {
       worker_name: r.worker_name,
       worker_mobile: r.worker_mobile || null,
       notes: r.notes,
-      photo_url: r.photo_url || null,
+      photo_urls: parseList(r.photo_url),
+      video_url: r.video_url || null,
     }))
     .sort((a, b) => (a.work_date < b.work_date ? 1 : -1));
 }

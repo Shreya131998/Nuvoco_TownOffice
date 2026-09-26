@@ -1,13 +1,9 @@
-/* eslint-disable @next/next/no-img-element -- Cloudinary already serves a
-   resized, auto-format image (see lib/cloudinary-client.ts), so next/image
-   would only add Vercel's metered optimizer. Running at zero cost is a
-   requirement of this project, not an oversight. */
 import Link from "next/link";
 import { DataTable, type Column } from "@/components/dashboard/DataTable";
 import { PageHeader } from "@/components/dashboard/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Badge, Card } from "@/components/ui";
-import { thumb } from "@/lib/cloudinary-client";
+import { MediaStrip } from "@/components/MediaStrip";
 import { fmtDate, fmtDateTime } from "@/lib/dates";
 import { getComplaints } from "@/lib/sheets/store";
 import type { Complaint } from "@/lib/types";
@@ -132,19 +128,11 @@ export default async function Complaints({
     },
     {
       key: "photo",
-      header: "Photo",
+      header: "Media",
       hideOnMobile: true,
       cell: (c) =>
-        c.photo_url ? (
-          <a href={c.photo_url} target="_blank" rel="noreferrer">
-            <img
-              src={thumb(c.photo_url, 96, 96)}
-              alt={`Photo for ${c.token}`}
-              width={48}
-              height={48}
-              className="size-12 rounded border border-border object-cover"
-            />
-          </a>
+        c.photo_urls.length || c.video_url ? (
+          <MediaStrip photos={c.photo_urls} video={c.video_url} size={44} />
         ) : (
           <span className="text-xs text-muted">—</span>
         ),

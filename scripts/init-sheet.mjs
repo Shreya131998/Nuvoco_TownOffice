@@ -200,17 +200,17 @@ const TRANSACTION = {
   Complaints: [
     'token', 'submitted_at', 'complaint_date', 'resident_name', 'quarter_no',
     'mobile', 'issue_type_id', 'issue_type_en', 'issue_type_hi', 'description',
-    'photo_url', 'photo_public_id', 'id',
+    'photo_url', 'photo_public_id', 'id', 'video_url', 'video_id',
   ],
   Resolutions: [
     'token', 'resolved_at', 'resolve_date', 'technician_name',
     'technician_mobile', 'outcome', 'action_taken', 'photo_url',
-    'photo_public_id', 'id',
+    'photo_public_id', 'id', 'video_url', 'video_id',
   ],
   'Area Work': [
     'work_date', 'logged_at', 'work_type_id', 'work_type_en', 'work_type_hi',
     'area', 'worker_name', 'worker_mobile', 'notes', 'photo_url',
-    'photo_public_id', 'id',
+    'photo_public_id', 'id', 'video_url', 'video_id',
   ],
 };
 
@@ -278,10 +278,34 @@ for (const [tab, header] of Object.entries(TRANSACTION)) {
     console.log(`  ${tab.padEnd(14)} already in use — left untouched`);
     continue;
   }
+
+  // Columns added on the END are safe to apply in place: every existing row
+  // simply has blanks in the new ones, and nothing is re-ordered underneath
+  // the data. Only a rename or a re-order genuinely needs the tab emptied,
+  // and conflating the two meant "add a column" cost you every row.
+  const appendOnly =
+    existing[0]?.length &&
+    existing[0].length < header.length &&
+    existing[0].every((h, i) => header[i] === h);
+
+  if (appendOnly) {
+    await call(`/values/${encodeURIComponent(`'${tab}'!A1`)}?valueInputOption=RAW`, {
+      method: 'PUT',
+      body: JSON.stringify({ values: [header] }),
+    });
+    const added = header.slice(existing[0].length);
+    console.log(
+      `  ${tab.padEnd(14)} +${added.length} column(s): ${added.join(', ')} ` +
+      `(${Math.max(0, existing.length - 1)} row(s) kept)`
+    );
+    continue;
+  }
+
   if (existing.length > 1) {
     console.error(
-      `\nTab "${tab}" has a different column layout but already holds ` +
-      `${existing.length - 1} row(s).\nDownload them from the admin Export ` +
+      `\nTab "${tab}" has columns renamed or re-ordered, and already holds ` +
+      `${existing.length - 1} row(s).\nAdding columns at the end is applied ` +
+      'in place; this is not that.\nDownload the rows from the admin Export ' +
       'page, run "npm run sheet:clear", then re-run this.\n'
     );
     process.exit(1);

@@ -16,6 +16,8 @@ import { createHash } from "node:crypto";
 
 export const UPLOAD_FOLDER = "townoffice/complaints";
 
+
+
 export function isCloudinaryConfigured(): boolean {
   return Boolean(
     process.env.CLOUDINARY_CLOUD_NAME &&
@@ -76,11 +78,41 @@ export function assertOurUrl(value: unknown, field: string): string | null {
 
   const prefix = `https://res.cloudinary.com/${cloudName()}/`;
   if (!value.startsWith(prefix)) {
-    throw new Error(`${field} must be an uploaded image`);
+    throw new Error(`${field} must be an uploaded file`);
   }
   return value;
 }
 
+/**
+ * The same check over a list, with a cap.
+ *
+ * The browser hands these back after uploading, so they are as untrusted as
+ * anything else a form sends: one bad entry has to fail the whole submission
+ * rather than slip into the sheet alongside the good ones.
+ */
+export function assertOurUrls(
+  value: unknown,
+  field: string,
+  max: number
+): string[] {
+  if (value === null || value === undefined || value === "") return [];
+  if (!Array.isArray(value)) throw new Error(`${field} is invalid`);
+  if (value.length > max) throw new Error(`${field}: at most ${max} allowed`);
+  return value.map((v) => {
+    const url = assertOurUrl(v, field);
+    if (!url) throw new Error(`${field} is invalid`);
+    return url;
+  });
+}
+
 // The URL transforms live in a client-safe module; re-exported here so server
 // components can take everything Cloudinary-shaped from one import.
-export { thumb, fit } from "./cloudinary-client";
+export {
+  thumb,
+  fit,
+  isVideo,
+  parseList,
+  serialiseList,
+  MAX_PHOTOS,
+  MAX_VIDEO_BYTES,
+} from "./cloudinary-client";

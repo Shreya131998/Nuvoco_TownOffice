@@ -62,7 +62,8 @@ export type AreaWork = {
   worker_name: string;
   worker_mobile: string | null;
   notes: string;
-  photo_url: string | null;
+  photo_urls: string[];
+  video_url: string | null;
 };
 
 /** What a technician recorded on a visit. */
@@ -105,7 +106,8 @@ export type Resolution = {
   technician_mobile: string | null;
   outcome: Outcome;
   action_taken: string;
-  photo_url: string | null;
+  photo_urls: string[];
+  video_url: string | null;
 };
 
 /** A complaint joined to its latest resolution, with status derived. */
@@ -121,7 +123,8 @@ export type Complaint = {
   issue_type_en: string;
   issue_type_hi: string;
   description: string;
-  photo_url: string | null;
+  photo_urls: string[];
+  video_url: string | null;
 
   /** Derived below this line. */
   status: ComplaintStatus;

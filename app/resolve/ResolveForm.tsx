@@ -1,21 +1,21 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element -- Cloudinary already serves a
-   resized, auto-format image (see lib/cloudinary-client.ts), so next/image
-   would only add Vercel's metered optimizer. Running at zero cost is a
-   requirement of this project, not an oversight. */
-
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Search, TriangleAlert } from "lucide-react";
 import { FormShell, SubmitBar } from "@/components/forms/FormShell";
-import { PhotoField, type UploadedPhoto } from "@/components/forms/PhotoField";
+import {
+  MediaField,
+  EMPTY_MEDIA,
+  type MediaValue,
+} from "@/components/forms/MediaField";
+import { MAX_PHOTOS, MAX_VIDEO_BYTES } from "@/lib/cloudinary-client";
 import { QuarterField } from "@/components/forms/QuarterField";
 import { AreaWorkForm } from "./AreaWorkForm";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button, Card, Field, inputClass } from "@/components/ui";
-import { thumb } from "@/lib/cloudinary-client";
+import { MediaStrip } from "@/components/MediaStrip";
 import { fmtDate, fmtDateTime } from "@/lib/dates";
 import { normaliseToken } from "@/lib/token";
 import type { PublicComplaint } from "@/lib/public-complaint";
@@ -68,7 +68,7 @@ export default function ResolveForm({
   const [mobile, setMobile] = useState("");
   const [outcome, setOutcome] = useState<Outcome | "">("");
   const [action, setAction] = useState("");
-  const [photo, setPhoto] = useState<UploadedPhoto | null>(null);
+  const [media, setMedia] = useState<MediaValue>(EMPTY_MEDIA);
 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -137,7 +137,7 @@ export default function ResolveForm({
     setMobile("");
     setOutcome("");
     setAction("");
-    setPhoto(null);
+    setMedia(EMPTY_MEDIA);
     setErr(null);
     setDone(false);
   }
@@ -166,8 +166,10 @@ export default function ResolveForm({
           technician_mobile: mobile.trim() || null,
           outcome,
           action_taken: action,
-          photo_url: photo?.url ?? null,
-          photo_public_id: photo?.publicId ?? null,
+          photo_urls: media.photos.map((p) => p.url),
+          photo_ids: media.photos.map((p) => p.publicId),
+          video_url: media.video?.url ?? null,
+          video_id: media.video?.publicId ?? null,
         }),
       });
       const json = await res.json();
@@ -417,15 +419,7 @@ export default function ResolveForm({
                 {found.description}
               </p>
 
-              {found.photo_url && (
-                <img
-                  src={thumb(found.photo_url, 320, 320)}
-                  alt="Photo filed with the complaint"
-                  width={160}
-                  height={160}
-                  className="size-40 rounded-lg border border-border object-cover"
-                />
-              )}
+              <MediaStrip photos={found.photo_urls} video={found.video_url} size={104} />
 
               {/* Someone has been here before. What they tried is the most
                   useful thing this screen can tell the next person. */}
@@ -553,12 +547,14 @@ export default function ResolveForm({
               />
             </Field>
 
-            <PhotoField
-              value={photo}
-              onChange={setPhoto}
+            <MediaField
+              value={media}
+              onChange={setMedia}
               enabled={photos}
-              label="Photo after the work"
-              labelHi="काम के बाद की फोटो"
+              maxPhotos={MAX_PHOTOS}
+              maxVideoBytes={MAX_VIDEO_BYTES}
+              label="Photos or video after the work"
+              labelHi="काम के बाद की फोटो या वीडियो"
             />
           </div>
         </Card>

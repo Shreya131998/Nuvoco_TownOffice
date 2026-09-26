@@ -101,6 +101,22 @@ export function bool(v: unknown, field: string): boolean {
 }
 
 /**
+ * The Cloudinary public_ids that go with an uploaded list.
+ *
+ * They are only ever used to delete the files later, never to build a URL, so
+ * a mismatched or missing entry is not worth failing a submission over — the
+ * resident would lose a complaint over bookkeeping. Anything that does not
+ * line up with the URLs is dropped.
+ */
+export function idsFor(v: unknown, count: number): string[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .slice(0, count)
+    .map((x) => (typeof x === "string" ? x.slice(0, 200) : ""))
+    .filter(Boolean);
+}
+
+/**
  * Optional single shared staff code. Blank env var = pages stay fully open,
  * which is the configured default: /resolve is keyed on the complaint token.
  * Set STAFF_ACCESS_CODE if it turns out residents are closing their own

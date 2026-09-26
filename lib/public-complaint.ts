@@ -19,7 +19,8 @@ export type PublicComplaint = {
   issue_type_en: string;
   issue_type_hi: string;
   description: string;
-  photo_url: string | null;
+  photo_urls: string[];
+  video_url: string | null;
   status: ComplaintStatus;
   overdue: boolean;
   age_hours: number;
@@ -28,6 +29,8 @@ export type PublicComplaint = {
     technician_name: string;
     outcome: Outcome;
     action_taken: string;
+    photo_urls: string[];
+    video_url: string | null;
   }[];
 };
 
@@ -41,7 +44,8 @@ export function toPublicComplaint(c: Complaint): PublicComplaint {
     issue_type_en: c.issue_type_en,
     issue_type_hi: c.issue_type_hi,
     description: c.description,
-    photo_url: c.photo_url,
+    photo_urls: c.photo_urls,
+    video_url: c.video_url,
     status: c.status,
     overdue: c.overdue,
     age_hours: c.age_hours,
@@ -50,6 +54,8 @@ export function toPublicComplaint(c: Complaint): PublicComplaint {
       technician_name: v.technician_name,
       outcome: v.outcome,
       action_taken: v.action_taken,
+      photo_urls: v.photo_urls,
+      video_url: v.video_url,
     })),
   };
 }

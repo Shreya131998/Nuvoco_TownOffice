@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { CheckCircle2, TriangleAlert } from "lucide-react";
-import { PhotoField, type UploadedPhoto } from "@/components/forms/PhotoField";
+import {
+  MediaField,
+  EMPTY_MEDIA,
+  type MediaValue,
+} from "@/components/forms/MediaField";
+import { MAX_PHOTOS, MAX_VIDEO_BYTES } from "@/lib/cloudinary-client";
 import { Button, Card, Field, inputClass } from "@/components/ui";
 import { istToday } from "@/lib/dates";
 import type { WorkType } from "@/lib/types";
@@ -31,7 +36,7 @@ export function AreaWorkForm({
   const [who, setWho] = useState("");
   const [mobile, setMobile] = useState("");
   const [notes, setNotes] = useState("");
-  const [photo, setPhoto] = useState<UploadedPhoto | null>(null);
+  const [media, setMedia] = useState<MediaValue>(EMPTY_MEDIA);
 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -42,7 +47,7 @@ export function AreaWorkForm({
     // The area and the notes are what change round to round.
     setArea("");
     setNotes("");
-    setPhoto(null);
+    setMedia(EMPTY_MEDIA);
     setErr(null);
     setDone(null);
   }
@@ -68,8 +73,10 @@ export function AreaWorkForm({
           worker_name: who,
           worker_mobile: mobile.trim() || null,
           notes,
-          photo_url: photo?.url ?? null,
-          photo_public_id: photo?.publicId ?? null,
+          photo_urls: media.photos.map((p) => p.url),
+          photo_ids: media.photos.map((p) => p.publicId),
+          video_url: media.video?.url ?? null,
+          video_id: media.video?.publicId ?? null,
         }),
       });
       const json = await res.json();
@@ -230,13 +237,15 @@ export function AreaWorkForm({
             />
           </Field>
 
-          <PhotoField
-            value={photo}
-            onChange={setPhoto}
-            enabled={photos}
-            label="Photo of the work"
-            labelHi="कार्य की फोटो"
-          />
+          <MediaField
+              value={media}
+              onChange={setMedia}
+              enabled={photos}
+              maxPhotos={MAX_PHOTOS}
+              maxVideoBytes={MAX_VIDEO_BYTES}
+              label="Photos or video of the work"
+              labelHi="कार्य की फोटो या वीडियो"
+            />
         </div>
       </Card>
 

@@ -6,9 +6,15 @@ import {
   optStr,
   personName,
   str,
+  idsFor,
 } from "@/lib/api";
 import { allow, clientIp } from "@/lib/ratelimit";
-import { assertOurUrl, isCloudinaryConfigured } from "@/lib/cloudinary";
+import {
+  assertOurUrl,
+  assertOurUrls,
+  isCloudinaryConfigured,
+  MAX_PHOTOS,
+} from "@/lib/cloudinary";
 import { normaliseToken } from "@/lib/token";
 import { submitResolution } from "@/lib/sheets/store";
 import type { Outcome } from "@/lib/types";
@@ -51,13 +57,23 @@ export async function POST(req: Request) {
       throw new BadRequest("Please choose what happened on the visit");
     }
 
-    let photoUrl: string | null = null;
-    if (body.photo_url) {
-      if (!isCloudinaryConfigured()) throw new BadRequest("Photo uploads are not enabled");
+    // Photos and video are validated together: both arrive from the browser
+    // after it uploaded them, so both are untrusted.
+    let photoUrls: string[] = [];
+    let videoUrl: string | null = null;
+    const wantsMedia =
+      (Array.isArray(body.photo_urls) && body.photo_urls.length > 0) ||
+      Boolean(body.video_url);
+
+    if (wantsMedia) {
+      if (!isCloudinaryConfigured()) {
+        throw new BadRequest("Uploads are not enabled");
+      }
       try {
-        photoUrl = assertOurUrl(body.photo_url, "Photo");
+        photoUrls = assertOurUrls(body.photo_urls, "Photo", MAX_PHOTOS);
+        videoUrl = assertOurUrl(body.video_url, "Video");
       } catch (e) {
-        throw new BadRequest(e instanceof Error ? e.message : "Photo is invalid");
+        throw new BadRequest(e instanceof Error ? e.message : "Attachment is invalid");
       }
     }
 
@@ -69,10 +85,10 @@ export async function POST(req: Request) {
       technician_mobile: optStr(body.technician_mobile, "Mobile number", 15),
       outcome,
       action_taken: str(body.action_taken, "Work done", 2000, 5),
-      photo_url: photoUrl,
-      photo_public_id: photoUrl
-        ? str(body.photo_public_id, "Photo reference", 200)
-        : null,
+      photo_urls: photoUrls,
+      photo_ids: idsFor(body.photo_ids, photoUrls.length),
+      video_url: videoUrl,
+      video_id: videoUrl ? String(body.video_id ?? "") : null,
     });
 
     return NextResponse.json({ ok: true, token });

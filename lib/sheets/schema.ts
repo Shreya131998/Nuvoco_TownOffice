@@ -37,6 +37,23 @@ export const REGISTER_TABS: string[] = [
   TAB.areaWork,
 ];
 
+/**
+ * Media columns, shared by all three registers.
+ *
+ * `photo_url` now holds a NEWLINE-SEPARATED list, because a complaint usually
+ * needs more than one angle. The singular name is kept deliberately: renaming
+ * it would re-order the header, which costs every row already in the tab,
+ * and a single URL parses as a one-item list either way. A Sheets cell takes
+ * 50,000 characters — several hundred URLs — so the cap that matters is the
+ * one the form enforces, not the sheet's.
+ *
+ * Video is a separate, single column rather than another entry in that list.
+ * It is the one piece of media with a real cost: an image is ~180 KB after
+ * the browser shrinks it, a clip is tens of megabytes and cannot be shrunk
+ * client-side. Keeping it in its own column makes "does this complaint have a
+ * video" answerable at a glance in the sheet, and caps it at one by shape
+ * rather than by rule.
+ */
 export const COMPLAINT_COLS = [
   "token",
   "submitted_at",
@@ -51,6 +68,8 @@ export const COMPLAINT_COLS = [
   "photo_url",
   "photo_public_id",
   "id",
+  "video_url",
+  "video_id",
 ] as const;
 
 export const RESOLUTION_COLS = [
@@ -64,6 +83,8 @@ export const RESOLUTION_COLS = [
   "photo_url",
   "photo_public_id",
   "id",
+  "video_url",
+  "video_id",
 ] as const;
 
 /**
@@ -110,6 +131,8 @@ export const AREA_WORK_COLS = [
   "photo_url",
   "photo_public_id",
   "id",
+  "video_url",
+  "video_id",
 ] as const;
 
 export const WORK_TYPE_COLS = [

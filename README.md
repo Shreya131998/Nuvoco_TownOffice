@@ -134,9 +134,15 @@ never edited.
 
 | Tab | One row = | Columns |
 |---|---|---|
-| **Complaints** | one complaint | token, who, where, what, photo |
-| **Resolutions** | one *visit* | token, technician, outcome, work done, photo |
-| **Area Work** | one *round* | date, type, area, worker, what was done, photo |
+| **Complaints** | one complaint | token, who, where, what, media |
+| **Resolutions** | one *visit* | token, technician, outcome, work done, media |
+| **Area Work** | one *round* | date, type, area, worker, what was done, media |
+
+`photo_url` holds a **newline-separated list** — up to four per record. The
+singular column name is kept on purpose: renaming it would re-order the header
+and cost every row already in the tab, and a single URL parses as a one-item
+list either way, so rows written before this still read correctly. `video_url`
+is its own single column.
 
 A complaint with three call-outs has one row in `Complaints` and three in
 `Resolutions`. The latest visit decides the status; all three stay as the
@@ -261,12 +267,24 @@ the resident sees the whole history, and both endpoints are rate limited — but
 it is a trade. Set `STAFF_ACCESS_CODE` to put `/resolve` behind one shared
 staff code if it stops being one.
 
-**A photo can be taken or chosen.** Two buttons, one file input. The
-`capture` attribute sends a phone straight to the rear camera, which suits
-someone standing in front of the problem — but it also skips the gallery, so
-a resident who photographed the leak an hour ago had no way to attach it. The
-attribute is set per button, immediately before the click, rather than fixed
-on the input.
+**Photos and video share one control.** Up to four photos and one video, from
+the camera or the gallery. There is deliberately no `capture` attribute: it
+would send a phone straight to the camera and skip the gallery entirely, and
+with video in the mix that split would have meant four buttons. Left off, the
+phone offers its own sheet — camera, camcorder, library, files — which is
+shorter and more familiar than anything reinvented here.
+
+**Four photos, one video.** Photos are shrunk on a canvas to ~180 KB, so four
+of them cost less than a fifth of a megabyte. A clip is tens of megabytes and
+cannot be re-encoded in the browser, which is why it is capped at one and at
+30 MB. At 800 complaints a month photos alone use a fraction of Cloudinary's
+free allowance; uncapped video would not.
+
+**Adding a column no longer costs the rows.** `sheet:init` rewrites headers,
+and any header change used to mean emptying the tab first. Columns added at
+the *end* are now applied in place — every existing row simply gets blanks in
+the new ones. Only a rename or a re-order still needs the export-and-clear
+dance, because only those move data out from under its heading.
 
 **Photos never touch this server.** The browser shrinks the image on a canvas
 (1600 px, q0.72 — typically 120–250 KB), asks `/api/upload-signature` for a

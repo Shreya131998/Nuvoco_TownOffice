@@ -1,14 +1,10 @@
-/* eslint-disable @next/next/no-img-element -- Cloudinary already serves a
-   resized, auto-format image (see lib/cloudinary-client.ts), so next/image
-   would only add Vercel's metered optimizer. Running at zero cost is a
-   requirement of this project, not an oversight. */
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FormShell } from "@/components/forms/FormShell";
 import { TokenCard } from "@/components/TokenCard";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Card } from "@/components/ui";
-import { fit, thumb } from "@/lib/cloudinary";
+import { MediaStrip } from "@/components/MediaStrip";
 import { fmtDateTime } from "@/lib/dates";
 import { getByToken } from "@/lib/sheets/store";
 import { normaliseToken } from "@/lib/token";
@@ -67,17 +63,7 @@ export default async function Page({
               </p>
               <p className="mt-1 whitespace-pre-wrap text-sm">{c.description}</p>
             </div>
-            {c.photo_url && (
-              <a href={fit(c.photo_url)} target="_blank" rel="noreferrer">
-                    <img
-                  src={thumb(c.photo_url, 320, 320)}
-                  alt="Photo attached to this complaint"
-                  width={160}
-                  height={160}
-                  className="size-40 rounded-lg border border-border object-cover"
-                />
-              </a>
-            )}
+            <MediaStrip photos={c.photo_urls} video={c.video_url} size={112} />
           </div>
         </Card>
 
@@ -107,17 +93,9 @@ export default async function Page({
                     <p className="mt-1 whitespace-pre-wrap text-sm text-muted">
                       {v.action_taken}
                     </p>
-                    {v.photo_url && (
-                      <a href={fit(v.photo_url)} target="_blank" rel="noreferrer">
-                        <img
-                          src={thumb(v.photo_url, 200, 200)}
-                          alt="Photo taken after the work"
-                          width={100}
-                          height={100}
-                          className="mt-2 size-24 rounded-lg border border-border object-cover"
-                        />
-                      </a>
-                    )}
+                    <div className="mt-2">
+                        <MediaStrip photos={v.photo_urls} video={v.video_url} size={80} />
+                      </div>
                   </li>
                 );
               })}

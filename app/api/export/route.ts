@@ -7,6 +7,10 @@ import { OUTCOME_META, STATUS_META } from "@/lib/types";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Every attachment for a record, one per line inside a single cell. */
+const mediaCell = (photos: string[], video: string | null) =>
+  [...photos, ...(video ? [video] : [])].join("\n");
+
 /**
  * Three sheets: one row per complaint, one per visit, and one per round of
  * common-area work.
@@ -78,9 +82,9 @@ export async function GET(req: Request) {
       "विवरण / Description",
       "स्थिति / Status",
       "घंटे / Hours",
-      "फोटो / Photo",
+      "फोटो व वीडियो / Photos & video",
     ],
-    [18, 20, 22, 12, 14, 18, 46, 18, 10, 40]
+    [18, 20, 22, 12, 14, 18, 46, 18, 10, 46]
   );
   complaints.getRow(1).height = 30;
 
@@ -95,7 +99,7 @@ export async function GET(req: Request) {
       c.description,
       `${STATUS_META[c.status].hi} / ${STATUS_META[c.status].en}`,
       c.resolution_hours ?? c.age_hours,
-      c.photo_url ?? "",
+      mediaCell(c.photo_urls, c.video_url),
     ]);
     // Overdue rows are tinted so a supervisor can scan for them.
     if (c.overdue) row.getCell(8).fill = PINK;
@@ -126,7 +130,7 @@ export async function GET(req: Request) {
         v.technician_mobile ?? "",
         `${OUTCOME_META[v.outcome].hi} / ${OUTCOME_META[v.outcome].en}`,
         v.action_taken,
-        v.photo_url ?? "",
+        mediaCell(v.photo_urls, v.video_url),
       ]);
     }
   }
@@ -157,7 +161,7 @@ export async function GET(req: Request) {
       w.worker_name,
       w.worker_mobile ?? "",
       w.notes,
-      w.photo_url ?? "",
+      mediaCell(w.photo_urls, w.video_url),
     ]);
   }
 

@@ -4,7 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { TriangleAlert } from "lucide-react";
 import { FormShell, SubmitBar } from "@/components/forms/FormShell";
-import { PhotoField, type UploadedPhoto } from "@/components/forms/PhotoField";
+import {
+  MediaField,
+  EMPTY_MEDIA,
+  type MediaValue,
+} from "@/components/forms/MediaField";
+import { MAX_PHOTOS, MAX_VIDEO_BYTES } from "@/lib/cloudinary-client";
 import { QuarterField } from "@/components/forms/QuarterField";
 import { Button, Card, Field, inputClass } from "@/components/ui";
 import { formatQuarter, type Block, type IssueType } from "@/lib/types";
@@ -26,7 +31,7 @@ export default function ComplaintForm({
   const [mobile, setMobile] = useState("");
   const [issueTypeId, setIssueTypeId] = useState("");
   const [description, setDescription] = useState("");
-  const [photo, setPhoto] = useState<UploadedPhoto | null>(null);
+  const [media, setMedia] = useState<MediaValue>(EMPTY_MEDIA);
 
   // A bot fills every field it finds. A human never sees this one.
   const [website, setWebsite] = useState("");
@@ -59,8 +64,10 @@ export default function ComplaintForm({
           mobile,
           issue_type_id: issueTypeId,
           description,
-          photo_url: photo?.url ?? null,
-          photo_public_id: photo?.publicId ?? null,
+          photo_urls: media.photos.map((p) => p.url),
+          photo_ids: media.photos.map((p) => p.publicId),
+          video_url: media.video?.url ?? null,
+          video_id: media.video?.publicId ?? null,
           website,
         }),
       });
@@ -178,7 +185,15 @@ export default function ComplaintForm({
               />
             </Field>
 
-            <PhotoField value={photo} onChange={setPhoto} enabled={photos} />
+            <MediaField
+              value={media}
+              onChange={setMedia}
+              enabled={photos}
+              maxPhotos={MAX_PHOTOS}
+              maxVideoBytes={MAX_VIDEO_BYTES}
+              label="Add photos or a video"
+              labelHi="फोटो या वीडियो जोड़ें"
+            />
           </div>
         </Card>
 
